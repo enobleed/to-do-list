@@ -1,4 +1,12 @@
 
+class Task:
+    def __init__(self, task_id, description, status, created_at, updated_at):
+        self.task_id = task_id
+        self.description = description
+        self.status = status
+        self.created_at = created_at
+        self.updated_at = updated_at
+
 def print_tasks(category='all'):
     pass
 
@@ -25,12 +33,21 @@ def main():
             case ['add']:
                 print('Please enter a task')
             case 'add', *info:
-                print (f'Adding task: {info}')
-
-
-
-
-
+                task = ' '.join(info)
+                if task[0] == task[-1] == '"':
+                    task = task[1:-1]
+                    print (f'Adding task: {task}')
+                else:
+                    print('Please enter a task with "+"')
+            case 'update', task_id:
+                if task_id.isdigit():
+                    print(f'Updating task with id: {task_id}')
+                else:
+                    print('Invalid id')
+            case ['update']:
+                print('Please enter task id')
+            case 'update', *wtv:
+                print('Invalid id')
 
 if __name__ == '__main__':
     main()

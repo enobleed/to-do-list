@@ -1,11 +1,19 @@
+from enum import Enum
+from dataclasses import dataclass
+from datetime import datetime
 
+class Status(Enum):
+    TODO = 'todo'
+    IN_PROGRESS = 'in-progress'
+    DONE = 'done'
+
+@dataclass
 class Task:
-    def __init__(self, task_id, description, status, created_at, updated_at):
-        self.task_id = task_id
-        self.description = description
-        self.status = status
-        self.created_at = created_at
-        self.updated_at = updated_at
+    task_id: int
+    description: str
+    status: Status.TODO
+    created_at: str
+    updated_at: str
 
 def print_tasks(category='all'):
     pass
@@ -32,10 +40,10 @@ def main():
             case ['list']:
                 print('List of all tasks')
                 print_tasks()
-            case 'list', 'done' | 'todo' | 'in-progress' as category:
-                print_tasks(category)
+            case 'list', 'done' | 'todo' | 'in-progress' as status:
+                print_tasks(status)
             case 'list', *wtv:
-                print('Incorrect category')
+                print('Incorrect status')
             case ['add']:
                 print('Please enter a task')
             case 'add', *info:
@@ -71,6 +79,12 @@ def main():
                 print('Please enter task id')
             case 'delete', *wtv:
                 print('Invalid id')
+            case 'mark-in-progress' | 'mark-done' as status, task_id:
+                if task_id.isdigit():
+                    status = status.replace('mark-', '')
+                    print(f'Changing status to {status} for id: {task_id}')
+                else:
+                    print('Invalid id')
 
 if __name__ == '__main__':
     main()

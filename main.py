@@ -24,7 +24,8 @@ class Task:
         task.updated_at = data['updated_at']
         return task
 
-    def get_time(self):
+    @staticmethod
+    def get_time():
         return datetime.now().strftime('%d.%m.%Y %H:%M:%S')
 
     def update_description(self, description):
@@ -32,11 +33,12 @@ class Task:
         self.updated_at = self.get_time()
 
     def update_status(self, status):
-        if status in Status:
+        try:
             self.status = Status(status)
             self.updated_at = self.get_time()
             return True
-        return False
+        except ValueError:
+            return False
 
     def to_dict(self):
         return {
@@ -58,12 +60,12 @@ def load_tasks():
     try:
         with open(save_file, 'r') as f:
             return [Task.task_from_dict(t) for t in json.load(f)]
-    except FileNotFoundError, json.decoder.JSONDecodeError:
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
         return []
 
-def print_tasks(tasks, category=False):
+def print_tasks(tasks, category=None):
     for task in tasks:
-        if not category or task.status.value == category:
+        if category is None or task.status.value == category:
             print(task)
 
 def parse_description(command):
@@ -81,10 +83,10 @@ def parse_description(command):
 
 def get_id(tasks):
     ids = {t.task_id for t in tasks}
-    for i in range(1, len(ids)+2):
-        if i not in ids:
-            return i
-    return 0
+    i = 1
+    while i in ids:
+        i += 1
+    return i
 
 def cli(tasks):
     while True:

@@ -1,5 +1,4 @@
 from enum import Enum
-from dataclasses import dataclass, field
 import json
 from datetime import datetime
 
@@ -10,13 +9,34 @@ class Status(Enum):
     IN_PROGRESS = 'in-progress'
     DONE = 'done'
 
-@dataclass
 class Task:
-    task_id: int
-    description: str
-    status: Status =  Status.TODO
-    created_at: str = datetime.now().isoformat()
-    updated_at: str = created_at
+    def __init__(self, task_id, description):
+        self.task_id = task_id
+        self.description = description
+        self.status = Status.TODO
+        self.created_at = self.get_time()
+        self.updated_at = self.created_at
+
+    def task_from_dict(data):
+        task = Task(data['task_id'], data['description'])
+        task.status = Status(data['status'])
+        task.created_at = data['created_at']
+        task.updated_at = data['updated_at']
+        return task
+
+    def get_time(self):
+        return datetime.now().strftime('%d.%m.%Y %H:%M:%S')
+
+    def update_description(self, description):
+        self.description = description
+        self.updated_at = self.get_time()
+
+    def update_status(self, status):
+        if status in Status:
+            self.status = Status(status)
+            self.updated_at = self.get_time()
+            return True
+        return False
 
     def to_dict(self):
         return {
@@ -27,6 +47,9 @@ class Task:
             'updated_at': self.updated_at
         }
 
+    def __str__(self):
+        return f'[{self.task_id}] {self.description} ({self.status.value})'
+
 def save_tasks(tasks):
     with open(save_file, 'w') as f:
         json.dump([t.to_dict() for t in tasks], f, indent=4)
@@ -34,20 +57,13 @@ def save_tasks(tasks):
 def load_tasks():
     try:
         with open(save_file, 'r') as f:
-            return [
-                Task(
-                t['task_id'],
-                t['description'],
-                Status(t['status']),
-                t['created_at'],
-                t['updated_at'])
-                for t in json.load(f)]
-    except FileNotFoundError:
+            return [Task.task_from_dict(t) for t in json.load(f)]
+    except FileNotFoundError, json.decoder.JSONDecodeError:
         return []
 
 def print_tasks(tasks, category=False):
     for task in tasks:
-        if not category or task.status == category:
+        if not category or task.status.value == category:
             print(task)
 
 def parse_description(command):
@@ -78,7 +94,6 @@ def cli(tasks):
                 break
 # list
             case ['list']:
-                print('List of all tasks')
                 print_tasks(tasks)
             case 'list', 'done' | 'todo' | 'in-progress' as status:
                 print_tasks(tasks, status)
@@ -104,9 +119,16 @@ def cli(tasks):
                 if not task_id.isdigit():
                     print('Invalid id')
                     continue
+                task_id = int(task_id)
                 description = parse_description(command)
                 if description:
-                    print (f'Updating task: {description} for id: {task_id}')
+                    for t in tasks:
+                        if t.task_id == task_id:
+                            t.update_description(description)
+                            print(f'Updated task: {description} for id: {task_id}')
+                            break
+                    else:
+                        print('No such id')
                 else:
                     print('Please enter a task within double quotes')
             case ['update']:
@@ -116,7 +138,14 @@ def cli(tasks):
 # delete
             case 'delete', task_id:
                 if task_id.isdigit():
-                    print(f'Deleting task with id: {task_id}')
+                    task_id = int(task_id)
+                    for i in range(len(tasks)):
+                        if tasks[i].task_id == task_id:
+                            print(f'Deleting task {tasks[i].description} with id: {task_id}')
+                            del tasks[i]
+                            break
+                    else:
+                        print('No such id')
                 else:
                     print('Invalid id')
             case ['delete']:
@@ -126,8 +155,17 @@ def cli(tasks):
 # mark
             case 'mark-in-progress' | 'mark-done' as status, task_id:
                 if task_id.isdigit():
+                    task_id = int(task_id)
                     status = status.replace('mark-', '')
-                    print(f'Changing status to {status} for id: {task_id}')
+                    for t in tasks:
+                        if t.task_id == task_id:
+                            if t.update_status(status):
+                                print(f'Changed status to {status} for task with id: {task_id}')
+                            else:
+                                print('Wrong status')
+                            break
+                    else:
+                        print('No such id')
                 else:
                     print('Invalid id')
 
